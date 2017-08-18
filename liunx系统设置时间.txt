@@ -1,0 +1,7 @@
+﻿1. 输入命令： tzselect
+设置步骤依次输入： 5 → 回车 → 9 → 回车 → 1 → 回车 → 1
+2. 输入命令： cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+3. 确定替换。
+出现“cp：是否覆盖 /etc/localtime？”时，输入命令： y   （同意覆盖）
+
+重启crond服务：service crond restart

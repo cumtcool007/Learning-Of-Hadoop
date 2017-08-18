@@ -1,0 +1,12 @@
+安装好hive可以当成数据库一样写sql语句：
+	1.创建库：
+		hive>create database shizhan03;
+		同时hadoop的hdfs中会生成一个/user/hive/warehouse/shizhan03.db 的文件
+	2.创建表：
+		hive>create table t_sz03(id int, name string) row format delimited fields terminated by ',';
+		同时hadoop的hdfs中在/user/hive/warehouse/shizhan03.db目录下会生成一个t_sz03的文件
+	3.上传数据：
+		hadoop fs -put data.txt   /user/hive/warehouse/shizhan03.db/t_sz03
+		其中data.txt 是按照建表格式创建的内容文件，这就相当于在表中插入数据
+	4.然后就可以对表中数据进行增删改查了
+				

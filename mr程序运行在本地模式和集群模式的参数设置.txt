@@ -1,0 +1,24 @@
+本地运行mr配置：
+
+	Configuration conf = new Configuration();
+		
+	conf.set("mapreduce.framework.name", "local");
+	本地模式运行mr程序时，输入输出的数据可以在本地，也可以在hdfs上
+	也就是说mapreduce在本地以线程跑的时候，数据可以从本地读取写入，也可从hdfs文件系统上读取写入
+	到底在哪里，就看下以下两行你用了哪行
+	//1.数据在hdfs
+	conf.set("fs.defaultFS", "hdfs://mini1:9000/");
+	//2.数据在本地
+	conf.set("fs.defaultFS", "file:///");
+	Job job = Job.getInstance(conf);
+
+集群运行mr程序：
+                //运行集群模式，就是把程序提交到yarn中去运行
+		//要想在本地运行为集群模式，以下3个参数要指定为集群上的值
+		//如果在linux下运行，则不用写了
+		Configuration conf = new Configuration();
+		conf.set("mapreduce.framework.name", "yarn");
+		conf.set("yarn.resourcemanager.hostname", "mini1");
+		//运行集群模式时，数据也必须从hdfs中存取
+		conf.set("fs.defaultFS", "hdfs://mini1:9000/"); 
+		Job job = Job.getInstance(conf);

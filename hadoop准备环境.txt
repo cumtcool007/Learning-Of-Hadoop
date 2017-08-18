@@ -1,0 +1,182 @@
+1.准备Linux环境
+	1.0先将虚拟机的网络模式选为NAT
+		
+	1.1修改各个主机名
+		vi /etc/sysconfig/network
+		
+		NETWORKING=yes
+		HOSTNAME=mini1    ###
+
+	1.2修改IP
+		
+		 修改配置文件方式 
+			vim /etc/sysconfig/network-scripts/ifcfg-eth0
+			
+			DEVICE=eth0
+			HWADDR=00:0C:29:47:A9:2C
+			TYPE=Ethernet
+			UUID=3a8311d3-56b1-4d51-a478-0a3017cf94c8
+			ONBOOT=yes
+			NM_CONTROLLED=yes
+			BOOTPROTO=none
+			IPADDR=192.168.190.201
+			NETMASK=255.255.255.0
+			GETEWAY=192.168.190.1
+
+			GATEWAY=192.168.190.1
+			DNS1=192.168.190.1
+			
+	1.3修改主机名和IP的映射关系
+		vim /etc/hosts
+			
+		192.168.190.201	mini1
+		192.168.190.202	mini2
+		192.168.190.203	mini3
+		192.168.190.204	mini4
+		192.168.190.205	mini5
+	
+	1.4关闭防火墙
+		#查看防火墙状态
+		service iptables status
+		#关闭防火墙
+		service iptables stop
+		#查看防火墙开机启动状态
+		chkconfig iptables --list
+		#关闭防火墙开机启动
+		chkconfig iptables off
+	1.5 给每个虚拟机创建一个hadoop用户
+	        修改sudo
+		su root
+		vim /etc/sudoers
+		给hadoop用户添加执行的权限
+
+
+ 
+	1.7 配置免密登录，详情见免密登录配置问题
+	1.8 重启客户机
+ 
+
+2.用root用户安装JDK
+	2.1上传alt+p  
+	
+	2.2解压jdk
+		 
+		#解压
+		tar -zxvf jdk-7u45-linux-i586.tar.gz -C /usr/local 
+		
+	2.3将java添加到环境变量中
+		vim /etc/profile
+		#在文件最后添加
+		export JAVA_HOME=/usr/local/jdk1.7.0_45
+		export PATH=$PATH:$JAVA_HOME/bin
+	
+		#刷新配置
+		source /etc/profile
+		
+3.安装hadoop2.4.1
+	先上传hadoop的安装包到服务器上去/home/hadoop/apps/ 
+	注意：hadoop2.x的配置文件home/hadoop/apps/hadoop-2.6.4/etc/hadoop
+	伪分布式需要修改5个配置文件
+	3.1配置hadoop
+	第一个：hadoop-env.sh
+		vim hadoop-env.sh
+		#第27行
+		export JAVA_HOME=/usr/local/jdk1.7.0_45
+		
+	第二个：core-site.xml
+
+		<!-- 指定HADOOP所使用的文件系统schema（URI），HDFS的老大（NameNode）的地址 -->
+		<property>
+			<name>fs.defaultFS</name>
+			<value>hdfs://mini1:9000</value>
+		</property>
+		<!-- 指定hadoop运行时产生文件的存储目录 -->
+		<property>
+			<name>hadoop.tmp.dir</name>
+			<value>/home/hadoop/hdpdata</value>
+    </property>
+		
+	第三个：hdfs-site.xml   (可以不配，都有默认值)
+		<!-- 指定HDFS副本的数量 -->
+		<property>
+			<name>dfs.replication</name>
+			<value>2</value>
+		</property>
+                <!-- 指定secondarynamenote的地址-->
+		<property>
+			<name>dfs.secondary.http.address</name>
+			<value>192.168.190.205:50090<alue>
+		</property>
+
+                <!-- 指定namenode多个磁盘，元数据会同时往这两块里面写，写的都是一样的，主要为了避免磁盘损坏 -->
+		<!-- 此处以两个为例，可以多写 -->
+		<property>
+			<name>dfs.name.dir</name>
+			<value>/home/hadoop/name1,/home/hadoop/name2</value>
+		</property>
+               
+		
+	第四个：mapred-site.xml (mv mapred-site.xml.template mapred-site.xml)
+		mv mapred-site.xml.template mapred-site.xml
+		vim mapred-site.xml
+		<!-- 指定mr运行在yarn上 -->
+		<property>
+			<name>mapreduce.framework.name</name>
+			<value>yarn</value>
+		</property>
+		
+	第五个：yarn-site.xml
+		<!-- 指定YARN的老大（ResourceManager）的地址 -->
+		<property>
+			<name>yarn.resourcemanager.hostname</name>
+			<value>mini1</value>
+		</property>
+		<!-- reducer获取数据的方式 -->
+		<property>
+			<name>yarn.nodemanager.aux-services</name>
+			<value>mapreduce_shuffle</value>
+		</property>
+
+	scp -r  apps mini2:/home/hadoop/
+     	
+	3.2将hadoop添加到环境变量
+	
+	vim /etc/proflie
+		export JAVA_HOME=/usr/local/jdk1.7.0_45
+		export HADOOP_HOME=/home/hadoop/apps/hadoop-2.6.4
+		export PATH=$PATH:$JAVA_HOME/bin:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+
+	source /etc/profile
+	
+	可以scp 把/etc/profile到各个机器下去，不拷贝也没事，主要是想以后在各个虚拟机下都能输入命令
+	sudo scp /etc/profile mini2:/etc/
+	3.3格式化namenode（是对namenode进行初始化）
+		 hadoop namenode -format 
+		
+	3.4启动hadoop
+	        修改主节点的配置文件下的/home/hadoop/apps/hadoop-2.6.4/etc/hadoop/slaves
+		先启动HDFS
+		/home/hadoop/apps/hadoop-2.6.4/sbin
+		
+		sbin/start-dfs.sh
+		
+		再启动YARN
+		sbin/start-yarn.sh
+		
+	3.5验证是否启动成功
+		使用jps命令验证
+		27408 NameNode
+		28218 Jps
+		27643 SecondaryNameNode
+		28066 NodeManager
+		27803 ResourceManager
+		27512 DataNode
+	
+		http://192.168.190.201:50070 （HDFS管理界面）
+		http://192.168.190.201:8088 （MR管理界面）
+		
+ 
+	3.6 关闭
+	   stop-dfs.sh
+           stop-yarn.sh
+	

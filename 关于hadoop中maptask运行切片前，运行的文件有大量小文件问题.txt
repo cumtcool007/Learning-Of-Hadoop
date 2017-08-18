@@ -1,0 +1,14 @@
+关于大量小文件的优化策略：
+（1）默认情况下，TextInputformat对任务的切片机制是文件规划切片，不管文件多小，都会是一个单独的切片
+都会交给maptask。这样如果有大量小文件，就会产生大量的maptask，处理效率极其低下。
+（2）优化策略：
+	最好的方式：在数据处理系统的最前端（预处理/采集），就将文件先合并成大文件，再上传到hdfs做后续分析
+     补救措施：
+        如果已经是大量小文件在hdfs中了，可以使用另一种Inputformat来做切片（CombinerFileInputFormat），
+	他的切片逻辑跟FileInputFormat不同，它可以将很多小文件从逻辑上规划到一个切片中，这样，多个小文件就可以交给一个maptask
+        直接在job提交代码写这个：
+	         //处理大量小文件的解决方案
+		//如果不设置InputFormat，它默认的是TextInputFormat
+		job.setInputFormatClass(CombineTextInputFormat.class);
+		CombineTextInputFormat.setMaxInputSplitSize(job, 4194304);
+		CombineTextInputFormat.setMinInputSplitSize(job, 2097152);
